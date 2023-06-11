@@ -31,7 +31,7 @@ def download_file(media, paperID, verbose, log_file):
             total_length = int(r.headers.get("Content-Length"))
 
             # implement progress bar via tqdm
-            with tqdm.wrapattr(r.raw, "read", total=total_length, desc="")as raw:
+            with tqdm.wrapattr(r.raw, "read", total=total_length, desc=f"{basename}")as raw:
 
                 # save the output to a file
                 with open(f"{basename}", 'wb')as output:
@@ -75,25 +75,18 @@ def main():
 
     with open(args.file, "r") as file:
         ID_list = file.read().splitlines()
-        
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrent) as executor:
+        futures = []
         for paper_id in ID_list:
-#             future = download_file('videos', paper_id, args.verbose, args.log)
-            future = download_file('papers', paper_id, args.verbose, args.log)
-            future = download_file('posters', paper_id, args.verbose, args.log)
-            future = download_file('sildes', paper_id, args.verbose, args.log)
-
-
-#     with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrent) as executor:
-#         futures = []
-#         for paper_id in ID_list:
 #             future = executor.submit(download_file, 'videos', paper_id, args.verbose, args.log)
-#             future = executor.submit(download_file, 'papers', paper_id, args.verbose, args.log)
-#             future = executor.submit(download_file, 'posters', paper_id, args.verbose, args.log)
-#             future = executor.submit(download_file, 'sildes', paper_id, args.verbose, args.log)            
-#             futures.append(future)
+            future = executor.submit(download_file, 'papers', paper_id, args.verbose, args.log)
+            future = executor.submit(download_file, 'posters', paper_id, args.verbose, args.log)
+            future = executor.submit(download_file, 'sildes', paper_id, args.verbose, args.log)            
+            futures.append(future)
 
-#         # Wait for all downloads to complete
-#         concurrent.futures.wait(futures)
+        # Wait for all downloads to complete
+        concurrent.futures.wait(futures)
         
 if __name__ == "__main__":
     main()
