@@ -39,24 +39,6 @@ def download_file(media, paperID, verbose, log_file):
         except Exception as e:
             with open(log_file, "a") as log:
                 log.write(f"{basename} Not found. Probably the author did not upload it.\n")            
-        
-#     file_name = url.split("/")[-1]  # Extract the file name from the URL
-#     file_name = append_id(file_name, media) # append file type
-#     try:
-#         urllib.request.urlretrieve(url, file_name)
-#         progress_bar = tqdm(total=total_size, unit='B', unit_scale=True)
-#         while True:
-#             buffer = response.read(block_size)
-#             if not buffer:
-#                 break
-#             out_file.write(buffer)
-#             progress_bar.update(len(buffer))
-#         progress_bar.close()
-#         if verbose:
-#             print("File downloaded successfully:", file_name)        
-#     except Exception as e:
-#         with open(log_file, "a") as log:
-#             log.write(f"{url}: {error_message}\n")
 
 def main():
     parser = argparse.ArgumentParser(description="File Downloader")
@@ -79,11 +61,9 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrent) as executor:
         futures = []
         for paper_id in ID_list:
-#             future = executor.submit(download_file, 'videos', paper_id, args.verbose, args.log)
-            future = executor.submit(download_file, 'papers', paper_id, args.verbose, args.log)
-            future = executor.submit(download_file, 'posters', paper_id, args.verbose, args.log)
-            future = executor.submit(download_file, 'sildes', paper_id, args.verbose, args.log)            
-            futures.append(future)
+            for media in ['papers', 'posters', 'slides']: # remember to add videos
+                future = executor.submit(download_file, media, paper_id, args.verbose, args.log)
+                futures.append(future)
 
         # Wait for all downloads to complete
         concurrent.futures.wait(futures)
