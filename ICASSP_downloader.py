@@ -3,6 +3,7 @@ import argparse
 import requests
 from pathlib import Path
 import concurrent.futures
+import threading
 from tqdm.auto import tqdm
 import os
 import shutil
@@ -37,26 +38,9 @@ def download_file(media, paperID, verbose, log_file):
                 with open(f"{basename}", 'wb')as output:
                     shutil.copyfileobj(raw, output)
         except Exception as e:
+            print(f"something is wrong")
             with open(log_file, "a") as log:
                 log.write(f"{basename} Not found. Probably the author did not upload it.\n")            
-        
-#     file_name = url.split("/")[-1]  # Extract the file name from the URL
-#     file_name = append_id(file_name, media) # append file type
-#     try:
-#         urllib.request.urlretrieve(url, file_name)
-#         progress_bar = tqdm(total=total_size, unit='B', unit_scale=True)
-#         while True:
-#             buffer = response.read(block_size)
-#             if not buffer:
-#                 break
-#             out_file.write(buffer)
-#             progress_bar.update(len(buffer))
-#         progress_bar.close()
-#         if verbose:
-#             print("File downloaded successfully:", file_name)        
-#     except Exception as e:
-#         with open(log_file, "a") as log:
-#             log.write(f"{url}: {error_message}\n")
 
 def main():
     parser = argparse.ArgumentParser(description="File Downloader")
@@ -64,7 +48,7 @@ def main():
                         help="Path to the text file containing URLs")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Display verbose output")
-    parser.add_argument("-l", "--log", type=str, default="download.log",
+    parser.add_argument("-l", "--log", type=str, default="download_error.log",
                         help="Path to the log file (default: download_error.log)")
     parser.add_argument("-c", "--concurrent", type=int, default=5,
                         help="Number of concurrent downloads (default: 5)")
@@ -75,18 +59,17 @@ def main():
 
     with open(args.file, "r") as file:
         ID_list = file.read().splitlines()
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrent) as executor:
-        futures = []
-        for paper_id in ID_list:
-#             future = executor.submit(download_file, 'videos', paper_id, args.verbose, args.log)
-            future = executor.submit(download_file, 'papers', paper_id, args.verbose, args.log)
-            future = executor.submit(download_file, 'posters', paper_id, args.verbose, args.log)
-            future = executor.submit(download_file, 'sildes', paper_id, args.verbose, args.log)            
-            futures.append(future)
-
-        # Wait for all downloads to complete
-        concurrent.futures.wait(futures)
         
+    threads = []
+    for paper_id in ID_list:     
+        for media in ['papers', 'posters', 'slides']:
+            t = threading.Thread(target=download_file, args=(media, paper_id, args.verbose, args.log,))
+            threads.append(t)
+            t.start()
+        
+    for t in threads:
+        t.join()        
+
+
 if __name__ == "__main__":
     main()
